@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+
 import { config } from './index'
 
 let dbClient: SupabaseClient | null = null
