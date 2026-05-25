@@ -6,6 +6,7 @@ import { registerRoomHandlers } from './room.socket'
 import { registerPlaybackHandlers } from './playback.socket'
 import { registerQueueHandlers } from './queue.socket'
 import { SocketData, ClientToServerEvents, ServerToClientEvents, InterServerEvents } from '../types/socket'
+import { getRoom, transferHost, getRoomMembers, updateSocketId } from '../services/room.service'
 
 let io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
 
@@ -51,10 +52,10 @@ export function setupSocket(httpServer: HttpServer): Server<ClientToServerEvents
       const roomId = socket.data.roomId
       if (roomId) {
         try {
-          const { getRoom, transferHost, getRoomMembers, updateSocketId } = await import('../services/room.service')
+          
           const roomData = await getRoom(roomId)
           if (roomData.room) {
-            const member = roomData.members.find((m) => m.user_id === userId)
+            const member = roomData.members.find((m: any) => m.user_id === userId)
             const wasHost = member?.is_host ?? false
             await updateSocketId(roomId, userId, null)
             socket.to(roomId).emit('user_left', {
