@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2, Clock, Plus, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Clock, Plus, AlertCircle, Radio, Disc3 } from 'lucide-react';
 import { searchService } from '@/services/search';
 import { useQueue } from '@/hooks/useQueue';
 import { useQueueStore } from '@/store/queueStore';
@@ -17,8 +17,10 @@ function getSearchThumbnail(result: SearchResult): string {
 
 function formatDuration(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00';
+
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
+
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
@@ -40,7 +42,7 @@ export function SearchBar({ className }: { className?: string }) {
   const currentUserId = user?.id ?? '';
 
   const userQueueCount = queue.filter((item) => item.addedBy === currentUserId).length;
-  const maxQueueReached = userQueueCount >= 3;
+  const maxQueueReached = userQueueCount >= 7;
 
   const performSearch = useCallback(async (q: string) => {
     if (!q.trim()) {
@@ -53,6 +55,7 @@ export function SearchBar({ className }: { className?: string }) {
 
     setIsLoading(true);
     setError(null);
+
     try {
       const { results: searchResults } = await searchService.searchSongs(q);
       setResults(searchResults);
@@ -68,6 +71,7 @@ export function SearchBar({ className }: { className?: string }) {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
     if (!query.trim()) {
       setResults([]);
       setIsOpen(false);
@@ -75,10 +79,13 @@ export function SearchBar({ className }: { className?: string }) {
       setIsLoading(false);
       return;
     }
+
     setIsLoading(true);
+
     debounceRef.current = setTimeout(() => {
       performSearch(query);
     }, 300);
+
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -90,12 +97,15 @@ export function SearchBar({ className }: { className?: string }) {
         setIsOpen(false);
       }
     }
+
     document.addEventListener('mousedown', handleClickOutside);
+
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   function handleSelect(result: SearchResult) {
     if (maxQueueReached || isAddCooldown) return;
+
     addSong(
       result.videoId,
       result.title,
@@ -103,6 +113,7 @@ export function SearchBar({ className }: { className?: string }) {
       result.duration,
       getSearchThumbnail(result),
     );
+
     setQuery('');
     setResults([]);
     setIsOpen(false);
@@ -117,16 +128,19 @@ export function SearchBar({ className }: { className?: string }) {
         e.preventDefault();
         setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
         break;
+
       case 'ArrowUp':
         e.preventDefault();
         setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
         break;
+
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < results.length) {
           handleSelect(results[selectedIndex]);
         }
         break;
+
       case 'Escape':
         setIsOpen(false);
         inputRef.current?.blur();
@@ -136,8 +150,11 @@ export function SearchBar({ className }: { className?: string }) {
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+      <div className="jukebox-display relative rounded-2xl p-2">
+        <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-jukebox-cyan/60 to-transparent" />
+
+        <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 dark:text-jukebox-gold/65 text-jukebox-brass" />
+
         <Input
           ref={inputRef}
           value={query}
@@ -146,11 +163,14 @@ export function SearchBar({ className }: { className?: string }) {
           onFocus={() => {
             if (results.length > 0 || isLoading) setIsOpen(true);
           }}
-          placeholder="Search for songs..."
-          className="pl-9 pr-4 h-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 rounded-xl focus-visible:ring-white/20"
+          placeholder="Search the jukebox..."
+          className="h-11 rounded-xl border-jukebox-gold/20 bg-black/45 pl-10 pr-10 text-sm font-semibold text-jukebox-cream placeholder:text-black/40 dark:placeholder:text-jukebox-cream/30 focus-visible:ring-jukebox-cyan/35"
         />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 animate-spin" />
+
+        {isLoading ? (
+          <Loader2 className="absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-jukebox-cyan" />
+        ) : (
+          <Radio className="absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-jukebox-cyan/50" />
         )}
       </div>
 
@@ -161,21 +181,33 @@ export function SearchBar({ className }: { className?: string }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-2 z-50 overflow-hidden rounded-xl border border-white/10 bg-black/90 backdrop-blur-2xl shadow-2xl"
+            className="jukebox-panel absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border-jukebox-gold/40 bg-jukebox-black/95 shadow-2xl backdrop-blur-2xl"
           >
+            <div className="flex items-center justify-between border-b border-jukebox-gold/15 px-4 py-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.28em] text-jukebox-gold/70">
+                  Selection Results
+                </p>
+                <p className="mt-1 text-xs text-jukebox-cream/45">
+                  Pick a song to load into the queue
+                </p>
+              </div>
+              <Disc3 className="h-4 w-4 text-jukebox-cyan/70" />
+            </div>
+
             {error ? (
-              <div className="flex items-center gap-3 px-4 py-6 text-center justify-center">
-                <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-                <p className="text-sm text-red-300">{error}</p>
+              <div className="flex items-center justify-center gap-3 px-4 py-6 text-center">
+                <AlertCircle className="h-5 w-5 shrink-0 text-jukebox-red-bright" />
+                <p className="text-sm font-semibold text-jukebox-red-bright">{error}</p>
               </div>
             ) : results.length === 0 && !isLoading ? (
-              <div className="px-4 py-6 text-center">
-                <p className="text-sm text-white/30">No results found</p>
+              <div className="px-4 py-8 text-center">
+                <p className="text-sm font-semibold text-jukebox-cream/45">No results found</p>
+                <p className="mt-1 text-xs text-jukebox-cream/25">Try another song or artist</p>
               </div>
             ) : (
-              <div className="max-h-[360px] overflow-y-auto py-1">
+              <div className="max-h-[360px] overflow-y-auto py-2">
                 {results.map((result, idx) => {
-                  const isMaxed = maxQueueReached && !isAddCooldown;
                   const addDisabled = isAddCooldown || maxQueueReached;
                   const thumbnailUrl = getSearchThumbnail(result);
 
@@ -188,33 +220,45 @@ export function SearchBar({ className }: { className?: string }) {
                       onClick={() => handleSelect(result)}
                       disabled={addDisabled}
                       className={cn(
-                        'flex items-center gap-3 w-full px-3 py-2.5 text-left transition-colors',
+                        'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
                         selectedIndex === idx
-                          ? 'bg-white/10'
-                          : 'hover:bg-white/[0.06]',
-                        addDisabled && 'opacity-40 cursor-not-allowed',
+                          ? 'bg-jukebox-cyan/10'
+                          : 'hover:bg-jukebox-gold/5',
+                        addDisabled && 'cursor-not-allowed opacity-45',
                       )}
                     >
                       <img
                         src={thumbnailUrl}
                         alt={result.title}
-                        className="w-10 h-10 rounded-lg object-cover shrink-0 bg-white/10"
+                        className="h-11 w-11 shrink-0 rounded-xl border border-jukebox-gold/25 bg-black/50 object-cover"
                       />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white font-medium truncate">{result.title}</p>
-                        <p className="text-xs text-white/40 truncate">{result.artist}</p>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-jukebox-cream">
+                          {result.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-jukebox-cream/35">
+                          {result.artist}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-white/30">{formatDuration(result.duration)}</span>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="text-[10px] font-black tracking-widest text-jukebox-gold/70">
+                          {formatDuration(result.duration)}
+                        </span>
+
                         {isAddCooldown ? (
-                          <span className="text-xs text-yellow-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Wait
+                          <span className="flex items-center gap-1 rounded-full border border-jukebox-gold/25 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-jukebox-gold">
+                            <Clock className="h-3 w-3" />
+                            Wait
                           </span>
                         ) : maxQueueReached ? (
-                          <span className="text-xs text-orange-400">Queue full</span>
+                          <span className="rounded-full border border-jukebox-red-bright/30 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-jukebox-red-bright">
+                            Full
+                          </span>
                         ) : (
-                          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                            <Plus className="w-3.5 h-3.5 text-white/60" />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full jukebox-chrome-button">
+                            <Plus className="h-4 w-4 text-jukebox-black" />
                           </div>
                         )}
                       </div>

@@ -191,7 +191,7 @@ export default function JoinRoomPage() {
                     type="button"
                     onClick={handlePaste}
                     disabled={loading}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-white disabled:opacity-50"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-white disabled:opacity-50 disabled:text-black/40 dark:disabled:text-jukebox-cream/40"
                     title="Paste from clipboard"
                   >
                     <ClipboardPaste size={18} />

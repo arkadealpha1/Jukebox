@@ -59,13 +59,13 @@ export function HostControls({ className }: { className?: string }) {
         <span className="text-xs text-yellow-400 font-medium">Host</span>
       </div>
 
-      <div className="w-px h-5 bg-white/10" />
+      <div className="h-5 w-px bg-black/15 dark:bg-white/10" />
 
       <Button
         variant="ghost"
         size="sm"
         onClick={handleSkip}
-        className="text-white/40 hover:text-white hover:bg-white/10 h-8 px-2.5"
+        className="font-button h-8 px-2.5 text-black/55 hover:bg-black/10 hover:text-black dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
         title="Skip track"
       >
         <SkipForward className="w-4 h-4" />

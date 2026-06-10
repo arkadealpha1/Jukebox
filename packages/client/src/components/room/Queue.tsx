@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GripVertical, Trash2, Music } from 'lucide-react';
+import { GripVertical, Trash2, Music, Disc3, ListMusic } from 'lucide-react';
 import { useQueueStore } from '@/store/queueStore';
 import { useRoomStore } from '@/store/roomStore';
 import { useQueue } from '@/hooks/useQueue';
@@ -13,9 +13,19 @@ import type { QueueItem } from '@/types';
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00';
+
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
+
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function selectionCode(index: number): string {
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  const letter = letters[Math.floor(index / 9)] ?? 'Z';
+  const number = (index % 9) + 1;
+
+  return `${letter}${number}`;
 }
 
 function QueueItemRow({
@@ -41,6 +51,8 @@ function QueueItemRow({
   onDrop: (index: number) => void;
   index: number;
 }) {
+  const code = selectionCode(index);
+
   return (
     <motion.div
       layout
@@ -49,10 +61,10 @@ function QueueItemRow({
       exit={{ opacity: 0, x: 20, height: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors group',
+        'group relative overflow-hidden rounded-2xl border px-3 py-3 transition-all',
         isCurrent
-          ? 'bg-white/10 border border-white/10'
-          : 'hover:bg-white/[0.04] border border-transparent',
+          ? 'border-jukebox-cyan/55 bg-jukebox-cyan/10 shadow-jukebox-cyan'
+          : 'border-jukebox-gold/20 bg-black/30 hover:border-jukebox-gold/45 hover:bg-jukebox-gold/5',
       )}
       draggable={isHost && !isCurrent}
       onDragStart={() => onDragStart(index)}
@@ -60,56 +72,85 @@ function QueueItemRow({
       onDragEnd={onDragEnd}
       onDrop={() => onDrop(index)}
     >
-      {isHost && !isCurrent && (
-        <div className="shrink-0 cursor-grab active:cursor-grabbing text-white/20 hover:text-white/40 transition-colors">
-          <GripVertical className="w-4 h-4" />
-        </div>
-      )}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-jukebox-gold/35 to-transparent" />
 
-      <div className="relative shrink-0">
-        <img
-          src={getThumbnailUrl(item)}
-          alt={item.title}
+      <div className="flex items-center gap-3">
+        <div
           className={cn(
-            'w-10 h-10 rounded-lg object-cover',
-            isCurrent && 'ring-2 ring-white/30',
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-xs font-black tracking-widest',
+            isCurrent
+              ? 'border-jukebox-cyan/60 bg-jukebox-cyan/15 text-jukebox-cyan'
+              : 'border-jukebox-gold/40 bg-jukebox-black/80 text-jukebox-gold',
           )}
-        />
-        {isCurrent && (
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+        >
+          {code}
+        </div>
+
+        {isHost && !isCurrent && (
+          <div className="shrink-0 cursor-grab text-jukebox-cream/20 transition-colors hover:text-jukebox-gold active:cursor-grabbing">
+            <GripVertical className="h-4 w-4" />
           </div>
         )}
-      </div>
 
-      <div className="flex-1 min-w-0">
-        <p className={cn('text-sm truncate', isCurrent ? 'text-white font-medium' : 'text-white/80')}>
-          {item.title}
-        </p>
-        <p className="text-xs text-white/40 truncate">
-          {item.artist}{' '}
-          {!isCurrent && item.addedBy && item.addedBy !== currentUserId && (
-            <span className="text-white/20">&middot; {item.addedBy}</span>
+        <div className="relative shrink-0">
+          <img
+            src={getThumbnailUrl(item)}
+            alt={item.title}
+            className={cn(
+              'h-11 w-11 rounded-xl border object-cover',
+              isCurrent
+                ? 'border-jukebox-cyan/70 shadow-jukebox-cyan'
+                : 'border-jukebox-gold/25',
+            )}
+          />
+
+          {isCurrent && (
+            <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-jukebox-cyan/60 bg-jukebox-black shadow-jukebox-cyan">
+              <Disc3 className="h-3 w-3 animate-spin text-jukebox-cyan [animation-duration:3s]" />
+            </div>
           )}
-        </p>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              'truncate text-sm font-bold',
+              isCurrent ? 'text-jukebox-cream' : 'text-jukebox-cream/85',
+            )}
+          >
+            {item.title}
+          </p>
+
+          <p className="mt-0.5 truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-jukebox-cream/35">
+            {item.artist}
+            {!isCurrent && item.addedBy && item.addedBy !== currentUserId && (
+              <span className="text-jukebox-gold/45"> &middot; {item.addedBy}</span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className="text-[10px] font-black tracking-widest text-jukebox-gold/70">
+            {formatTime(item.duration)}
+          </span>
+
+          {isCurrent && (
+            <span className="rounded-full border border-jukebox-cyan/40 bg-jukebox-cyan/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] text-jukebox-cyan">
+              Live
+            </span>
+          )}
+
+          {isHost && !isCurrent && (
+            <button
+              onClick={() => onRemove(item.id)}
+              className="rounded-full p-1 text-jukebox-cream/25 opacity-0 transition-all hover:bg-jukebox-red/10 hover:text-jukebox-red-bright group-hover:opacity-100"
+              title="Remove song"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
-
-      <span className="text-xs text-white/30 shrink-0">{formatTime(item.duration)}</span>
-
-      {isCurrent && (
-        <span className="text-[10px] uppercase tracking-wider text-green-400 font-medium shrink-0">
-          Now Playing
-        </span>
-      )}
-
-      {isHost && !isCurrent && (
-        <button
-          onClick={() => onRemove(item.id)}
-          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-white/30 hover:text-red-400"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      )}
     </motion.div>
   );
 }
@@ -125,6 +166,7 @@ export function Queue({ className }: { className?: string }) {
   useEffect(() => {
     if (currentTrack && scrollRef.current) {
       const element = scrollRef.current.querySelector('[data-current="true"]');
+
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -153,14 +195,19 @@ export function Queue({ className }: { className?: string }) {
   const handleDrop = useCallback(
     (toIndex: number) => {
       const fromIndex = dragIndexRef.current;
+
       if (fromIndex === null || fromIndex === toIndex) return;
+
       const sortedQueue = currentTrack
         ? [currentTrack, ...queue.filter((item) => item.id !== currentTrack.id)]
         : queue;
+
       const item = sortedQueue[fromIndex];
+
       if (item) {
         reorderQueue(item.id, toIndex);
       }
+
       dragIndexRef.current = null;
     },
     [reorderQueue, queue, currentTrack],
@@ -171,35 +218,59 @@ export function Queue({ className }: { className?: string }) {
     : queue;
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-        <h3 className="text-sm font-medium text-white/60">
-          {queue.length > 0 ? (
-            <span>
-              <span className="text-white">{queue.length}</span> song{queue.length !== 1 ? 's' : ''}{' '}
-              in queue
-            </span>
-          ) : (
-            'Queue'
-          )}
-        </h3>
+    <div className={cn('flex h-full flex-col bg-jukebox-black/30', className)}>
+      <div className="relative border-b border-jukebox-gold/20 px-4 py-4">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-jukebox-cyan/50 to-transparent" />
+
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-jukebox-gold/70">
+              Song Selector
+            </p>
+
+            <h3 className="mt-1 text-sm font-black uppercase tracking-[0.14em] text-jukebox-cream">
+              {queue.length > 0 ? (
+                <>
+                  <span className="text-jukebox-cyan">{queue.length}</span>{' '}
+                  song{queue.length !== 1 ? 's' : ''} loaded
+                </>
+              ) : (
+                'Queue'
+              )}
+            </h3>
+          </div>
+
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-jukebox-gold/40 bg-black/40 shadow-jukebox-gold">
+            <ListMusic className="h-5 w-5 text-jukebox-gold" />
+          </div>
+        </div>
       </div>
 
-      <ScrollArea className="flex-1 px-2 py-2">
+      <ScrollArea className="flex-1 px-2 py-3">
         {queue.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-16 text-center"
           >
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-              <Music className="w-8 h-8 text-white/20" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full jukebox-chrome-button">
+              <Music className="h-7 w-7 text-jukebox-black" />
             </div>
-            <p className="text-white/40 text-sm font-medium">No songs in queue</p>
-            <p className="text-white/20 text-xs mt-1">Search and add some music!</p>
+
+            <p className="mt-5 text-[10px] font-black uppercase tracking-[0.3em] text-jukebox-gold/70">
+              Empty Selector
+            </p>
+
+            <h4 className="mt-2 text-base font-black uppercase tracking-[0.12em] text-jukebox-cream">
+              No songs loaded
+            </h4>
+
+            <p className="mt-2 max-w-[220px] text-xs leading-5 text-jukebox-cream/40">
+              Search and add music to fill the jukebox selection panel.
+            </p>
           </motion.div>
         ) : (
-          <div ref={scrollRef} className="space-y-0.5">
+          <div ref={scrollRef} className="space-y-2">
             <AnimatePresence mode="popLayout">
               {currentTrack && (
                 <div key={currentTrack.id} data-current="true">
@@ -217,6 +288,7 @@ export function Queue({ className }: { className?: string }) {
                   />
                 </div>
               )}
+
               {queueWithoutCurrent.map((item, idx) => (
                 <QueueItemRow
                   key={item.id}

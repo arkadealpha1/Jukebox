@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { DoorOpen, ClipboardPaste } from 'lucide-react';
+import { DoorOpen, ClipboardPaste, Ticket, Radio } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { roomService } from '@/services/room';
 
@@ -29,6 +29,7 @@ export function JoinRoomCard() {
   const handleRoomCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     setRoomCode(value);
+    if (error) setError('');
   };
 
   const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,70 +94,90 @@ export function JoinRoomCard() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative"
+      className="group relative h-full"
     >
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all duration-300 group-hover:border-blue-500/50 group-hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)]">
-        <DoorOpen className="mx-auto h-8 w-8 text-blue-400" />
+      <div className="jukebox-panel relative h-full overflow-hidden rounded-3xl p-6 transition-all duration-300 group-hover:border-jukebox-cyan/70 group-hover:shadow-jukebox-cyan">
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-1 rounded-full jukebox-tube-cyan opacity-80" />
+        <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-jukebox-cyan/20 blur-3xl" />
 
-        <h3 className="mt-3 text-center text-lg font-semibold text-white">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-jukebox-cyan/50 bg-jukebox-black/70 shadow-jukebox-cyan">
+          <DoorOpen className="h-6 w-6 text-blue dark:text-jukebox-cyan" />
+        </div>
+
+        <p className="mt-5 text-center text-[10px] font-black uppercase tracking-[0.32em] text-blue dark:text-jukebox-cyan/80">
+          Guest Entry
+        </p>
+
+        <h3 className="mt-2 text-center text-xl font-black uppercase tracking-[0.12em] text-jukebox-cream">
           Join a Room
         </h3>
 
-        <p className="mt-1 text-center text-sm text-gray-400">
-          Enter a room code to join.
+        <p className="mx-auto mt-3 max-w-xs text-center text-sm leading-6 text-jukebox-cream/55">
+          Enter the room code and your nickname to step into the listening booth.
         </p>
 
-        <div className="mt-4 space-y-3">
-          <div className="relative">
-            <Input
-              placeholder="ABC123"
-              value={roomCode}
-              onChange={handleRoomCodeChange}
-              maxLength={6}
-              className="border-white/10 bg-white/5 text-center font-mono text-lg uppercase tracking-widest text-white placeholder:text-gray-500"
-            />
+        <div className="mt-5 space-y-3">
+          <div className="jukebox-display rounded-2xl p-2">
+            <div className="relative">
+              <Input
+                placeholder="ABC123"
+                value={roomCode}
+                onChange={handleRoomCodeChange}
+                maxLength={6}
+                className="h-12 border-jukebox-cyan/20 bg-black/40 pr-10 text-center font-mono text-xl font-black uppercase tracking-[0.34em] text-blue dark:text-jukebox-cyan placeholder:text-blue dark:text-jukebox-cyan/25 focus-visible:ring-jukebox-cyan/40"
+              />
 
-            <button
-              type="button"
-              onClick={handlePaste}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-              title="Paste from clipboard"
-            >
-              <ClipboardPaste size={16} />
-            </button>
+              <button
+                type="button"
+                onClick={handlePaste}
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-jukebox-gold/30 bg-black/40 text-jukebox-gold transition-colors hover:bg-jukebox-gold/10 hover:text-jukebox-cream"
+                title="Paste from clipboard"
+              >
+                <ClipboardPaste size={15} />
+              </button>
+            </div>
           </div>
 
-          <Input
-            placeholder="Your nickname"
-            value={nickname}
-            onChange={handleNicknameChange}
-            maxLength={20}
-            minLength={2}
-            required
-            className="border-white/10 bg-white/5 text-white placeholder:text-gray-500"
-          />
+          <div className="jukebox-display rounded-2xl p-2">
+            <Input
+              placeholder="Your nickname"
+              value={nickname}
+              onChange={handleNicknameChange}
+              maxLength={20}
+              minLength={2}
+              required
+              className="h-11 border-jukebox-gold/20 bg-black/40 text-center text-sm font-semibold text-black dark:text-jukebox-cream placeholder:text-black/40 dark:placeholder:text-jukebox-cream/30 focus-visible:ring-jukebox-gold/40"
+            />
+          </div>
 
           {error && (
-            <p className="text-center text-xs text-red-400">{error}</p>
+            <div className="rounded-xl border border-jukebox-red-bright/30 bg-jukebox-red/10 px-3 py-2 text-center text-xs font-semibold text-jukebox-red-bright">
+              {error}
+            </div>
           )}
 
           <Button
             onClick={handleJoin}
             disabled={!canJoin}
-            className="w-full gap-2"
+            className="w-full rounded-full border border-jukebox-cyan/60 bg-jukebox-black/70 font-black uppercase tracking-[0.18em] text-blue dark:text-jukebox-cyan shadow-jukebox-cyan transition-all hover:bg-jukebox-cyan/10 hover:text-jukebox-cream disabled:cursor-not-allowed disabled:opacity-50 disabled:text-black/40 dark:disabled:text-jukebox-cream/40"
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                Joining...
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-jukebox-cyan/30 border-t-jukebox-cyan" />
+                Joining
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <DoorOpen size={16} />
+                <Ticket size={16} />
                 Join Room
               </span>
             )}
           </Button>
+
+          <div className="flex items-center justify-center gap-2 pt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-black dark:text-jukebox-cream/35">
+            <Radio className="h-3 w-3 text-blue dark:text-jukebox-cyan/60" />
+            Room code required
+          </div>
         </div>
       </div>
     </motion.div>

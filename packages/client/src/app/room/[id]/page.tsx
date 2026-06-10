@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LogOut, AlertCircle, Loader2, Music, Wifi, WifiOff } from 'lucide-react';
+import { LogOut, AlertCircle, Music, Wifi, WifiOff, Radio } from 'lucide-react';
 import { useSocket } from '@/hooks/useSocket';
 import { useRoom } from '@/hooks/useRoom';
 import { useQueue } from '@/hooks/useQueue';
@@ -24,10 +24,10 @@ import {
   HostControls,
   InviteButton,
 } from '@/components/room';
+import { FooterPlayerControls } from '@/components/room/FooterPlayerControls';
 import { Button } from '@/components/ui';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn, getThumbnailUrl } from '@/lib/utils';
-import type { Room, RoomMember, QueueItem } from '@/types';
 
 type PageState = 'loading' | 'error' | 'not-found' | 'ready';
 
@@ -36,38 +36,40 @@ export default function RoomPage() {
   const router = useRouter();
   const roomId = params.id as string;
 
-  const token = useAuthStore((s) => s.token);
-  const { isAuthenticated, user } = useAuthStore();
-  const { connect, disconnect, isConnected, status } = useSocket();
+  const user = useAuthStore((s) => s.user);
+  const { disconnect, isConnected } = useSocket();
+
   const {
     room,
-    members,
     isHost,
     setRoom,
     setMembers,
     setIsHost,
     leaveRoom: leaveRoomStore,
   } = useRoomStore();
+
   const { queue, currentTrack } = useQueueStore();
+
   const { primaryColor, secondaryColor, accentColor, backgroundColor, surfaceColor, setColors } =
     useThemeStore();
 
   const [pageState, setPageState] = useState<PageState>('loading');
   const [pageError, setPageError] = useState('');
   const [showMobileQueue, setShowMobileQueue] = useState(false);
+  const [socketError, setSocketError] = useState<string | null>(null);
 
-  const { colors: themeColors, isExtracting } = useThemeColors(getThumbnailUrl(currentTrack));
+  const { colors: themeColors } = useThemeColors(getThumbnailUrl(currentTrack));
 
   const roomHook = useRoom(roomId);
-  const queueHook = useQueue();
-
-  const [socketError, setSocketError] = useState<string | null>(null);
+  useQueue();
 
   useEffect(() => {
     function onSocketError(data: { message: string; code?: string }) {
       setSocketError(data.message);
     }
+
     socket.on(SOCKET_EVENTS.ERROR, onSocketError);
+
     return () => {
       socket.off(SOCKET_EVENTS.ERROR, onSocketError);
     };
@@ -75,12 +77,15 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (!roomId) return;
+
     let cancelled = false;
 
     async function fetchRoom() {
       try {
         const data = await roomService.getRoom(roomId);
+
         if (cancelled) return;
+
         setRoom(data.room);
         setMembers(data.members);
 
@@ -90,11 +95,12 @@ export default function RoomPage() {
         );
 
         setIsHost(Boolean((myMember as any)?.isHost || (myMember as any)?.is_host));
-
         setPageState('ready');
       } catch (err) {
         if (cancelled) return;
+
         const msg = err instanceof Error ? err.message : '';
+
         if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('404')) {
           setPageState('not-found');
         } else {
@@ -110,15 +116,6 @@ export default function RoomPage() {
       cancelled = true;
     };
   }, [roomId, setRoom, setMembers, setIsHost, user?.id]);
-
-  // useEffect(() => {
-  //   if (roomId && token) {
-  //     connect(token, roomId);
-  //   }
-  //   return () => {
-  //     disconnect();
-  //   };
-  // }, [roomId, token]);
 
   useEffect(() => {
     function onRoomClosed() {
@@ -156,6 +153,7 @@ export default function RoomPage() {
   const handleRetry = useCallback(() => {
     setPageState('loading');
     setPageError('');
+
     roomService
       .getRoom(roomId)
       .then((data) => {
@@ -168,7 +166,6 @@ export default function RoomPage() {
         );
 
         setIsHost(Boolean((myMember as any)?.isHost || (myMember as any)?.is_host));
-
         setPageState('ready');
       })
       .catch((err) => {
@@ -179,93 +176,80 @@ export default function RoomPage() {
 
   if (pageState === 'loading') {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center jukebox-bg px-4">
         <div className="flex flex-col items-center gap-4">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+            className="flex h-20 w-20 items-center justify-center rounded-full jukebox-chrome-button"
           >
-            <Music className="h-12 w-12 text-purple-400" />
+            <Music className="h-9 w-9 text-jukebox-black" />
           </motion.div>
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-lg font-medium text-white">Joining room...</p>
-            <p className="text-sm text-gray-400">Connecting to the listening party</p>
+
+          <div className="flex flex-col items-center gap-1 text-center">
+            <p className="font-button text-[10px] font-black uppercase tracking-[0.32em] text-jukebox-gold/80">
+              Room Selector
+            </p>
+            <p className="font-heading text-xl font-black uppercase heading-tracking text-jukebox-cream">
+              Joining Room
+            </p>
+            <p className="font-body text-base text-jukebox-cream/55">
+              Connecting to the listening party
+            </p>
           </div>
+
           <div className="mt-4 flex flex-col gap-3">
-            <Skeleton className="h-64 w-80 rounded-2xl bg-white/5 sm:w-96" />
-            <Skeleton className="h-12 w-80 rounded-xl bg-white/5 sm:w-96" />
-            <Skeleton className="h-8 w-80 rounded-xl bg-white/5 sm:w-96" />
+            <Skeleton className="h-64 w-80 rounded-3xl bg-jukebox-gold/10 sm:w-96" />
+            <Skeleton className="h-12 w-80 rounded-xl bg-jukebox-gold/10 sm:w-96" />
+            <Skeleton className="h-8 w-80 rounded-xl bg-jukebox-gold/10 sm:w-96" />
           </div>
         </div>
       </div>
     );
   }
 
-  if (pageState === 'not-found') {
+  if (pageState === 'not-found' || pageState === 'error') {
+    const isNotFound = pageState === 'not-found';
+
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center jukebox-bg px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex max-w-md flex-col items-center gap-6 text-center"
+          className="jukebox-panel flex max-w-md flex-col items-center gap-6 rounded-3xl p-8 text-center"
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
-            <AlertCircle className="h-10 w-10 text-red-400" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-jukebox-red-bright/40 bg-jukebox-red/10 shadow-jukebox-red">
+            <AlertCircle className="h-10 w-10 text-jukebox-red-bright" />
           </div>
+
           <div>
-            <h2 className="text-2xl font-bold text-white">Room Not Found</h2>
-            <p className="mt-2 text-sm text-gray-400">
-              This room doesn&apos;t exist or has been closed.
+            <p className="font-button text-[10px] font-black uppercase tracking-[0.32em] text-jukebox-gold/70">
+              Jukebox Error
+            </p>
+            <h2 className="font-heading mt-2 text-2xl font-black uppercase heading-tracking text-jukebox-cream">
+              {isNotFound ? 'Room Not Found' : 'Something Went Wrong'}
+            </h2>
+            <p className="font-body mt-3 text-base leading-6 text-jukebox-cream/55">
+              {isNotFound
+                ? "This room doesn't exist or has been closed."
+                : pageError || 'Unable to load the room.'}
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button
-              onClick={() => router.push('/')}
-              className="gap-2 bg-purple-600 text-white hover:bg-purple-500"
-            >
-              Go Home
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleRetry}
-              className="border-white/10 text-white hover:bg-white/10"
-            >
-              Try Again
-            </Button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
-  if (pageState === 'error') {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex max-w-md flex-col items-center gap-6 text-center"
-        >
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
-            <AlertCircle className="h-10 w-10 text-red-400" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-white">Something went wrong</h2>
-            <p className="mt-2 text-sm text-gray-400">{pageError || 'Unable to load the room.'}</p>
-          </div>
           <div className="flex gap-3">
             <Button
-              onClick={handleRetry}
-              className="gap-2 bg-purple-600 text-white hover:bg-purple-500"
+              onClick={isNotFound ? () => router.push('/') : handleRetry}
+              className="jukebox-chrome-button font-button rounded-full font-black uppercase button-tracking"
             >
-              Try Again
+              {isNotFound ? 'Go Home' : 'Try Again'}
             </Button>
+
             <Button
               variant="outline"
-              onClick={() => router.push('/')}
-              className="border-white/10 text-white hover:bg-white/10"
+              onClick={isNotFound ? handleRetry : () => router.push('/')}
+              className="font-button rounded-full border-jukebox-cyan/40 bg-black/30 text-jukebox-cyan hover:bg-jukebox-cyan/10 hover:text-jukebox-cream"
             >
-              Go Home
+              {isNotFound ? 'Try Again' : 'Go Home'}
             </Button>
           </div>
         </motion.div>
@@ -275,7 +259,7 @@ export default function RoomPage() {
 
   return (
     <div
-      className="relative min-h-[calc(100vh-4rem)] transition-colors duration-700"
+      className="relative min-h-[calc(100vh-4rem)] overflow-hidden transition-colors duration-700 jukebox-bg"
       style={
         {
           '--room-primary': primaryColor,
@@ -283,105 +267,141 @@ export default function RoomPage() {
           '--room-accent': accentColor,
           '--room-bg': backgroundColor,
           '--room-surface': surfaceColor,
-        } as React.CSSProperties
+        } as CSSProperties
       }
     >
-      <div className="hidden lg:flex lg:h-[calc(100vh-4rem)] lg:flex-row">
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            <Player />
-          </div>
-          <div className="flex items-center justify-between border-t border-white/5 px-6 py-3">
-            <InviteButton />
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1">
-                {isConnected ? (
-                  <Wifi className="h-3.5 w-3.5 text-green-400" />
-                ) : (
-                  <WifiOff className="h-3.5 w-3.5 text-red-400" />
-                )}
-                <span
-                  className={cn(
-                    'text-[10px] font-medium uppercase tracking-wider',
-                    isConnected ? 'text-green-400' : 'text-red-400',
-                  )}
-                >
-                  {isConnected ? 'Connected' : 'Disconnected'}
-                </span>
-                {socketError && (
-                  <span className="text-[10px] font-medium text-red-400 ml-2">
-                    {socketError}
-                  </span>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLeaveRoom}
-                className="gap-2 text-red-400/50 hover:text-red-400 hover:bg-red-500/10"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="text-xs">Leave</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex w-[380px] flex-col border-l border-white/10 xl:w-[420px]">
-          <div className="shrink-0 border-b border-white/5 px-4 py-3">
-            <SearchBar />
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <Queue />
-          </div>
-          <div className="max-h-[200px] shrink-0 border-t border-white/5">
-            <MemberList />
-          </div>
-          {isHost && (
-            <div className="shrink-0 border-t border-white/5 px-4 py-2">
-              <HostControls />
-            </div>
-          )}
-        </div>
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute left-1/2 top-1/2 h-[680px] w-[680px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[150px]"
+          style={{ backgroundColor: `${primaryColor || '#d6a84f'}20` }}
+        />
+        <div className="absolute inset-0 opacity-[0.05] jukebox-wood-bg" />
       </div>
 
-      <div className="flex flex-col lg:hidden">
-        <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-xl px-3 py-2">
-          <NowPlaying
-            onExpand={() => setShowMobileQueue(!showMobileQueue)}
-          />
-        </div>
+      {/* DESKTOP LAYOUT */}
+      <div className="relative z-10 hidden h-[calc(100vh-4rem)] grid-cols-[minmax(0,1fr)_400px] gap-4 p-4 lg:grid xl:grid-cols-[minmax(0,1fr)_430px]">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-jukebox-gold/25 bg-jukebox-black/35 shadow-jukebox-panel">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <Player />
+          </div>
 
-        <div className="flex-1 px-3 py-2">
-          <Player />
-        </div>
+          <footer className="jukebox-panel m-3 mt-0 shrink-0 rounded-2xl px-4 py-3">
+            <div className="grid gap-3 xl:grid-cols-[200px_minmax(0,1fr)_auto] xl:items-center">
+              <div className="flex items-center gap-3">
+                {/* <div className="jukebox-display min-w-[150px] rounded-xl px-4 py-2">
+                  <p className="font-button text-[8px] font-black uppercase tracking-[0.28em] text-jukebox-gold/65">
+                    Room Code
+                  </p>
+                  <p className="font-roomcode roomcode-tracking text-3xl leading-none text-jukebox-cream">
+                    {room?.roomCode ?? '------'}
+                  </p>
+                </div> */}
 
-        <div className="sticky bottom-0 z-20 bg-black/80 backdrop-blur-xl border-t border-white/10">
-          <div className="px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  {isConnected ? (
-                    <Wifi className="h-3 w-3 text-green-400" />
-                  ) : (
-                    <WifiOff className="h-3 w-3 text-red-400" />
-                  )}
-                  <span className="text-[10px] text-gray-500">
-                    {room?.roomCode ?? ''}
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <InviteButton />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <InviteButton />
-                {isHost && <HostControls />}
+
+              <div className="flex min-w-0 flex-1 items-center px-2">
+                <FooterPlayerControls />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="jukebox-display flex items-center gap-2 rounded-full px-3 py-1.5">
+                  {isConnected ? (
+                    <Wifi className="h-3.5 w-3.5 text-green-400" />
+                  ) : (
+                    <WifiOff className="h-3.5 w-3.5 text-jukebox-red-bright" />
+                  )}
+
+                  <span
+                    className={cn(
+                      'font-button text-[10px] font-black uppercase tracking-wider',
+                      isConnected ? 'text-green-400' : 'text-jukebox-red-bright',
+                    )}
+                  >
+                    {isConnected ? 'Connected' : 'Disconnected'}
+                  </span>
+
+                  {socketError && (
+                    <span className="ml-2 max-w-[180px] truncate text-[10px] font-semibold text-jukebox-red-bright">
+                      {socketError}
+                    </span>
+                  )}
+                </div>
+
+                {isHost && (
+                  <div className="flex items-center gap-2">
+                    <HostControls />
+                  </div>
+                )}
+
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleLeaveRoom}
-                  className="h-8 gap-1 text-red-400/50 hover:text-red-400 hover:bg-red-500/10"
+                  className="font-button gap-2 rounded-full border border-jukebox-red/25 bg-black/30 text-jukebox-red-bright/75 hover:bg-jukebox-red/10 hover:text-jukebox-red-bright"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="text-xs font-black uppercase tracking-wider">Leave</span>
+                </Button>
+              </div>
+            </div>
+          </footer>
+        </section>
+
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-jukebox-gold/30 bg-jukebox-black/55 shadow-jukebox-panel">
+          <div className="shrink-0 border-b border-jukebox-gold/20 px-4 py-4">
+            <SearchBar />
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <Queue />
+          </div>
+
+          <div className="max-h-[220px] shrink-0 border-t border-jukebox-gold/20">
+            <MemberList />
+          </div>
+        </aside>
+      </div>
+
+      {/* MOBILE / TABLET LAYOUT */}
+      <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col lg:hidden">
+        <div className="sticky top-0 z-20 border-b border-jukebox-gold/25 bg-jukebox-black/90 px-3 py-2 backdrop-blur-2xl">
+          <NowPlaying onExpand={() => setShowMobileQueue(!showMobileQueue)} />
+        </div>
+
+        <div className="flex-1 px-3 py-3">
+          <Player />
+        </div>
+
+        <div className="sticky bottom-0 z-20 border-t border-jukebox-gold/25 bg-jukebox-black/95 backdrop-blur-2xl">
+          <div className="px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="jukebox-display flex min-w-0 flex-1 items-center gap-2 rounded-full px-3 py-2">
+                {isConnected ? (
+                  <Wifi className="h-3 w-3 shrink-0 text-green-400" />
+                ) : (
+                  <WifiOff className="h-3 w-3 shrink-0 text-jukebox-red-bright" />
+                )}
+
+                <span className="font-button truncate text-[10px] font-black uppercase tracking-[0.2em] text-jukebox-gold/70">
+                  {room?.roomCode ? `Room ${room.roomCode}` : 'Room'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <InviteButton />
+                {isHost && <HostControls />}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLeaveRoom}
+                  className="h-8 gap-1 rounded-full border border-jukebox-red/25 bg-black/30 text-jukebox-red-bright/70 hover:bg-jukebox-red/10 hover:text-jukebox-red-bright"
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  <span className="text-xs">Leave</span>
+                  <span className="font-button text-xs">Leave</span>
                 </Button>
               </div>
             </div>
@@ -391,24 +411,27 @@ export default function RoomPage() {
             initial={false}
             animate={{ height: showMobileQueue ? 'auto' : 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="overflow-hidden border-t border-white/5"
+            className="overflow-hidden border-t border-jukebox-gold/20"
           >
-            <div className="px-3 py-2">
+            <div className="px-3 py-3">
               <SearchBar />
             </div>
-            <div className="max-h-[40vh] overflow-y-auto">
+
+            <div className="max-h-[42vh] overflow-y-auto">
               <Queue />
             </div>
-            <div className="border-t border-white/5">
+
+            <div className="border-t border-jukebox-gold/20">
               <MemberList />
             </div>
           </motion.div>
 
           <button
             onClick={() => setShowMobileQueue(!showMobileQueue)}
-            className="flex w-full items-center justify-center gap-2 border-t border-white/5 py-2 text-[10px] uppercase tracking-widest text-gray-500 hover:text-gray-300"
+            className="font-button flex w-full items-center justify-center gap-2 border-t border-jukebox-gold/20 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-jukebox-gold/70 transition-colors hover:text-jukebox-cream"
           >
-            {showMobileQueue ? 'Hide Queue' : `Show Queue (${queue.length})`}
+            <Radio className="h-3.5 w-3.5 text-jukebox-cyan/70" />
+            {showMobileQueue ? 'Hide Selector' : `Show Selector (${queue.length})`}
           </button>
         </div>
       </div>

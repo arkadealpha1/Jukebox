@@ -13,12 +13,11 @@ export function InviteButton({ className }: { className?: string }) {
   const { room } = useRoomStore();
   const [copied, setCopied] = useState(false);
 
-  const inviteUrl = room
-    ? `${APP_URL}/join?code=${room.roomCode}`
-    : '';
+  const inviteUrl = room ? `${APP_URL}/join?code=${room.roomCode}` : '';
 
   const handleCopy = useCallback(async () => {
     if (!inviteUrl) return;
+
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setCopied(true);
@@ -31,6 +30,7 @@ export function InviteButton({ className }: { className?: string }) {
 
   const handleShare = useCallback(async () => {
     if (!inviteUrl) return;
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -52,13 +52,14 @@ export function InviteButton({ className }: { className?: string }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={cn('flex flex-col items-center gap-3', className)}
+      className={cn('flex flex-col items-start gap-2', className)}
     >
-      <div className="flex flex-col items-center gap-1.5 px-6 py-4 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10">
-        <p className="text-[10px] uppercase tracking-widest text-white/30 font-medium">
+      <div className="jukebox-display rounded-xl px-4 py-2 text-left">
+        <p className="font-button text-[8px] font-black uppercase tracking-[0.24em] dark:text-jukebox-gold/65 text-jukebox-brass">
           Room Code
         </p>
-        <p className="text-3xl md:text-4xl font-bold tracking-[0.2em] text-white font-mono">
+
+        <p className="font-roomcode roomcode-tracking text-3xl leading-none text-jukebox-cream">
           {room.roomCode}
         </p>
       </div>
@@ -69,12 +70,12 @@ export function InviteButton({ className }: { className?: string }) {
           variant="outline"
           size="sm"
           className={cn(
-            'border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all',
-            copied && 'border-green-500/50 text-green-400 bg-green-500/10',
+            'font-button h-8 rounded-lg border-jukebox-gold/20 bg-black/35 px-3 text-xs text-jukebox-cream/75 hover:bg-jukebox-gold/10 hover:text-jukebox-cream',
+            copied && 'border-green-500/50 bg-green-500/10 text-green-400',
           )}
         >
-          <Copy className="w-4 h-4 mr-1.5" />
-          {copied ? 'Copied!' : 'Copy Invite Link'}
+          <Copy className="mr-1.5 h-3.5 w-3.5" />
+          {copied ? 'Copied!' : 'Copy Link'}
         </Button>
 
         {typeof navigator !== 'undefined' && 'share' in navigator && (
@@ -82,9 +83,9 @@ export function InviteButton({ className }: { className?: string }) {
             onClick={handleShare}
             variant="outline"
             size="sm"
-            className="border-white/10 text-white/70 hover:text-white hover:bg-white/10"
+            className="font-button h-8 rounded-lg border-jukebox-gold/20 bg-black/35 px-3 text-xs text-jukebox-cream/75 hover:bg-jukebox-gold/10 hover:text-jukebox-cream"
           >
-            <Share2 className="w-4 h-4 mr-1.5" />
+            <Share2 className="mr-1.5 h-3.5 w-3.5" />
             Share
           </Button>
         )}
