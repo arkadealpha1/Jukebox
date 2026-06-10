@@ -390,15 +390,15 @@ export default function RoomPage() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex max-w-full items-center gap-2 overflow-x-auto pb-1">
                 <InviteButton />
-                {isHost && <HostControls />}
+                {isHost && <HostControls className="shrink-0" />}
 
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleLeaveRoom}
-                  className="h-8 gap-1 rounded-full border border-jukebox-red/25 bg-black/30 text-jukebox-red-bright/70 hover:bg-jukebox-red/10 hover:text-jukebox-red-bright"
+                  className="h-8 shrink-0 gap-1 rounded-full border border-jukebox-red/25 bg-black/30 text-jukebox-red-bright/70 hover:bg-jukebox-red/10 hover:text-jukebox-red-bright"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   <span className="font-button text-xs">Leave</span>
